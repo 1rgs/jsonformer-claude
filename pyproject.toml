@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "jsonformer-claude"
+version = "0.1.0"
+description = ""
+authors = ["rahulgs12 <gsr1998@gmail.com>"]
+readme = "README.md"
+packages = [{include = "jsonformer_claude"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+anthropic = "^0.2.9"
+termcolor = "^2.3.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
