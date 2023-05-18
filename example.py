@@ -13,7 +13,7 @@ async def main():
     gen_json = JsonformerClaude(
         anthropic_client=client,
         max_tokens_to_sample=500,
-        model="claude-v1",
+        model="claude-instant-v1",
         json_schema={
             "type": "object",
             "properties": {
@@ -101,10 +101,11 @@ async def main():
             },
         },
         prompt="Generate a person and their school",
-        debug=True,
+        # debug=True,
     )
 
     print(await gen_json())
+    print("Number of anthropic requests made: ", gen_json.llm_request_count)
 
 
 if __name__ == "__main__":

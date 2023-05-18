@@ -160,8 +160,6 @@ class JsonformerClaude:
             await self.last_anthropic_stream.__anext__()
             response = self.last_anthropic_response
 
-        self.debug("[prefix_matches]", progress, response)
-
         result = response.startswith(progress)
         self.debug("[prefix_matches]", result)
         return result

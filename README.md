@@ -1,12 +1,19 @@
-# Jsonformer Claude: Generate Structured JSON from Anthropic's Claude Model
+# Jsonformer Claude: Generate Schema-conforming Structured JSON from Anthropic's Claude Model
 
-Generating structured JSON from language models can be a challenging task. The generated JSON must be syntactically correct and follow a schema that specifies the structure of the JSON. Jsonformer Claude is a library based on Jsonformer that works with Anthropic's language models to generate bulletproof JSON data following a given schema.
+Generating structured JSON from language models can be a challenging task. The generated JSON must be syntactically correct and follow a schema that specifies the structure of the JSON.
 
+Jsonformer Claude is a library based on Jsonformer that works with Anthropic's language models to generate JSON data following a given schema. Jsonformer Claude works great with very complex schemas.
+
+Most importantly, Jsonformer Claude minimizes network round trips, and only makes new requests to Claude when an error is encountered. This makes it much more efficient than generating a full JSON string and parsing it, then retrying if the JSON is not valid.
+
+<!-- add img/demo.png -->
+![cover](img/demo.png)
 ### Features
 
 - Robust JSON generation: Jsonformer Claude ensures that the generated JSON is always syntactically correct and adheres to the specified schema.
 - Efficiency: Jsonformer Claude generates only the content tokens and fills in the fixed tokens, making it more efficient than generating a full JSON string and parsing it.
 - Compatible with Anthropic models: Jsonformer Claude is designed to work with Anthropic's Claude model for JSON generation.
+- Impressive results for complex data: Jsonformer Claude has demonstrated its capability to generate structured JSON data representing the characters of entire books, such as "The Great Gatsby", highlighting its robustness and effectiveness.
 
 ### Supported schema types
 
@@ -18,7 +25,7 @@ Jsonformer Claude currently supports a subset of JSON Schema. Below is a list of
 - array
 - object
 
-## Example Usage
+## Example Usage: The Great Gatsby
 
 ```python
 import asyncio
@@ -36,7 +43,7 @@ client = anthropic.Client(api_key)
 json_schema = { ... }
 
 # Define the prompt
-prompt = "Generate a person's information based on the following schema:"
+prompt = "Generate a JSON representation of the main characters in The Great Gatsby based on the following schema:"
 
 # Create a JsonformerClaude instance
 gen_json = JsonformerClaude(
@@ -45,11 +52,28 @@ gen_json = JsonformerClaude(
     prompt=prompt
 )
 
-# Generate structured JSON data
+# Generate structured JSON data representing main characters in "The Great Gatsby"
 generated_data = await gen_json()
 
 print(generated_data)
 ```
+
+**Generated Output:**
+
+```json
+{
+  "title": "The Great Gatsby",
+  "characters": [
+    {
+      "name": "Jay Gatsby",
+      "description": "The main character of the novel. A wealthy, mysterious millionaire who is obsessed with Daisy Buchanan."
+    },
+    ...
+  ]
+}
+```
+
+Jsonformer Claude was able to generate detailed structured JSON data for the major characters in "The Great Gatsby". 
 
 ## Installation
 

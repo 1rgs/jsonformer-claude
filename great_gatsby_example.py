@@ -5,7 +5,6 @@ import json
 from jsonformer_claude.main import JsonformerClaude
 
 api_key = "YOUR_API_KEY"
-
 client = anthropic.Client(api_key)
 GENERATION_MARKER = "|GENERATION|"
 
@@ -18,8 +17,8 @@ async def main():
 
     gen_json = JsonformerClaude(
         anthropic_client=client,
-        max_tokens_to_sample=500,
-        model="claude-v1-100k",
+        max_tokens_to_sample=2000,
+        model="claude-v1",
         json_schema={
             "type": "object",
             "properties": {
