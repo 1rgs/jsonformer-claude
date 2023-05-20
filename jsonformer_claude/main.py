@@ -30,8 +30,8 @@ class JsonformerClaude:
     def debug(self, caller: str, value: str, is_prompt: bool = False):
         if self.debug_on:
             if is_prompt:
-                cprint(caller, "green", end=" ")
-                cprint(value, "yellow")
+                # cprint(caller, "green", end=" ")
+                # cprint(value, "yellow")
                 pass
             else:
                 cprint(caller, "green", end=" ")
@@ -161,6 +161,16 @@ class JsonformerClaude:
             response = self.last_anthropic_response
 
         result = response.startswith(progress)
+
+        if not result:
+            self.debug(
+                "[prefix_matches]",
+                f"Claude made a mistake",
+            )
+
+            cprint(progress, "red")
+            cprint(response, "magenta")
+
         self.debug("[prefix_matches]", result)
         return result
 

@@ -100,12 +100,14 @@ async def main():
                 },
             },
         },
-        prompt="Generate a person and their school",
-        # debug=True,
+        prompt="Generate info about a car",
+        debug=True,
     )
 
     print(await gen_json())
-    print("Number of anthropic requests made: ", gen_json.llm_request_count)
+
+    # print gen_json.llm_request_count
+    print("request count", gen_json.llm_request_count)
 
 
 if __name__ == "__main__":
