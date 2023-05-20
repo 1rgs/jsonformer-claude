@@ -1,5 +1,6 @@
 import asyncio
 import anthropic
+import os
 
 from jsonformer_claude.main import JsonformerClaude
 
@@ -16,6 +17,15 @@ async def main():
         model="claude-instant-v1",
         json_schema={
             "type": "object",
+            "definitions": {
+                "user": {
+                    "type": "object",
+                    "properties": {
+                        "first_name": {"type": "string"},
+                        "last_name": {"type": "string"}
+                    }
+                }
+            },
             "properties": {
                 "car": {
                     "type": "object",
@@ -73,31 +83,7 @@ async def main():
                         },
                     },
                 },
-                "owner": {
-                    "type": "object",
-                    "properties": {
-                        "firstName": {"type": "string"},
-                        "lastName": {"type": "string"},
-                        "age": {"type": "number"},
-                        "licenseNumber": {"type": "string"},
-                        "address": {
-                            "type": "object",
-                            "properties": {
-                                "street": {"type": "string"},
-                                "city": {"type": "string"},
-                                "state": {"type": "string"},
-                                "zip": {"type": "string"},
-                            },
-                        },
-                        "contactInfo": {
-                            "type": "object",
-                            "properties": {
-                                "email": {"type": "string", "format": "email"},
-                                "phoneNumber": {"type": "string"},
-                            },
-                        },
-                    },
-                },
+                "owner": {"$ref": "#/definitions/user"}
             },
         },
         prompt="Generate info about a car",

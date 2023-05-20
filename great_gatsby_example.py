@@ -4,7 +4,7 @@ import requests
 import json
 from jsonformer_claude.main import JsonformerClaude
 
-api_key = "YOUR_API_KEY"
+api_key = os.environ["ANTHROPIC"]
 client = anthropic.Client(api_key)
 GENERATION_MARKER = "|GENERATION|"
 

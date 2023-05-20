@@ -223,13 +223,31 @@ class JsonformerClaude:
             obj[key] = await self.generate_value(schema, obj, key)
         return obj
 
+    def validate_ref(self, ref):
+        if not ref.startswith('#/'):
+            raise ValueError("Ref must start with #/")
+
+    def get_definition_by_ref(self, ref) -> dict:
+        self.validate_ref(ref)
+
+        locations = ref.split('/')[1:]
+        definition = self.json_schema
+        for location in locations:
+            definition = definition.get(location)
+
+            if not definition:
+                raise ValueError("Improper reference")
+
+        return definition
+
+
     async def generate_value(
         self,
         schema: Dict[str, Any],
         obj: Union[Dict[str, Any], List[Any]],
         key: Union[str, None] = None,
     ) -> Any:
-        schema_type = schema["type"]
+        schema_type = schema.get("type")
         if schema_type == "number":
             if key:
                 obj[key] = self.generation_marker
@@ -259,6 +277,13 @@ class JsonformerClaude:
             else:
                 obj.append(new_obj)
             return await self.generate_object(schema["properties"], new_obj)
+        elif ref := schema.get("$ref"):
+            definition = self.get_definition_by_ref(ref)
+            return await self.generate_value(
+                schema=definition,
+                obj=obj,
+                key=key,
+            )
         else:
             raise ValueError(f"Unsupported schema type: {schema_type}")
 
