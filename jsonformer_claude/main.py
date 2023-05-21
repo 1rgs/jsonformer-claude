@@ -144,7 +144,7 @@ class JsonformerClaude:
         retries: int = 0
     ) -> Any:
         if retries > 5:
-            self.debug("[completion] EXCEEDED RETRIES RETURNING NONE", retries)
+            self.debug("[completion] EXCEEDED RETRIES RETURNING NONE", str(retries))
             return None
 
         schema_type = schema.get("type")
