@@ -18,7 +18,6 @@ class BaseField():
     obj = None
     key = None
     generation_marker = None
-    json_former = None
 
     def __init__(self, schema: dict, obj: Any, key: str, generation_marker: str):
         self.schema = schema
