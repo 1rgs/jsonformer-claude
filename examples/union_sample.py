@@ -42,7 +42,7 @@ async def main():
                 },
                 "car_model_year": {
                     "type": "number",
-                    "max": 1950,
+                    "max": 2000,
                     "min": 1940
                 },
                 "car_name": {
