@@ -1,8 +1,18 @@
 import re
 import anthropic
 from typing import List, Union, Dict, Any
+from jsonformer_claude.fields.base import FieldResponse
+from jsonformer_claude.fields.bool import BoolField
+from jsonformer_claude.fields.integer import IntField
+from jsonformer_claude.fields.string import StrField
 from termcolor import cprint
 import json
+
+FIELDS = {
+    "number": IntField,
+    "boolean": BoolField,
+    "string": StrField
+}
 
 
 class JsonformerClaude:
@@ -36,93 +46,6 @@ class JsonformerClaude:
             else:
                 cprint(caller, "green", end=" ")
                 cprint(value, "blue")
-
-    async def generate_number(self) -> int:
-        prompt = self.get_prompt()
-        progress = self.get_progress()
-        self.debug("[generate_number]", prompt, is_prompt=True)
-
-        def extract_number(s: str):
-            number_match = re.search(r"(\b\d+(\.\d+)?)(?=[^0-9\.])\b", s)
-            return number_match.group(0) if number_match else None
-
-        stream = self.last_anthropic_stream
-        if not await self.prefix_matches(progress) or stream is None:
-            self.debug("[generate_number]", "prompt doesn't match, getting new stream")
-            stream = self.completion(prompt)
-            generated_number = ""
-            async for completion in stream:
-                completion = completion[len(progress) :]
-                generated_number = extract_number(completion)
-                if generated_number:
-                    break
-        else:
-            if self.last_anthropic_response_finished:
-                self.debug(
-                    "[generate_number]", "prompt matches, getting from last response"
-                )
-                generated_number = extract_number(
-                    self.last_anthropic_response[len(progress) :]
-                )
-            else:
-                stream = self.last_anthropic_stream
-                async for completion in stream:
-                    completion = completion[len(progress) :]
-                    generated_number = extract_number(completion)
-                    if generated_number:
-                        break
-
-        self.debug("[generate_number]", generated_number)
-
-        # if it's a float, return a float, otherwise return an int
-        if "." in generated_number:
-            return float(generated_number)
-        return int(generated_number)
-
-    async def generate_boolean(self) -> bool:
-        prompt = self.get_prompt()
-        progress = self.get_progress()
-        self.debug("[generate_boolean]", prompt, is_prompt=True)
-
-        stream = self.last_anthropic_stream
-
-        def extract_boolean(s: str):
-            boolean_match = re.search(r"\btrue\b|\bfalse\b", s, re.IGNORECASE)
-            return boolean_match.group(0) if boolean_match else None
-
-        if not await self.prefix_matches(progress) or stream is None:
-            self.debug("[generate_boolean]", "prompt doesn't match, getting new stream")
-            stream = self.completion(prompt)
-            generated_boolean = ""
-            async for completion in stream:
-                completion = completion[len(progress) :]
-                generated_boolean = extract_boolean(completion)
-                if generated_boolean:
-                    break
-
-        else:
-            if self.last_anthropic_response_finished:
-                self.debug(
-                    "[generate_boolean]", "prompt matches, getting from last response"
-                )
-                completion = self.last_anthropic_response[len(progress) :]
-                generated_boolean = extract_boolean(completion)
-                if not generated_boolean:
-                    self.debug(
-                        "[generate_boolean]",
-                        "prompt matches but last response doesn't have a boolean",
-                    )
-                    print(generated_boolean)
-            else:
-                stream = self.last_anthropic_stream
-                async for completion in stream:
-                    completion = completion[len(progress) :]
-                    generated_boolean = extract_boolean(completion)
-                    if generated_boolean:
-                        break
-
-        self.debug("[generate_boolean]", generated_boolean)
-        return generated_boolean.lower() == "true"
 
     async def _completion(self, prompt: str):
         self.debug("[completion] hitting anthropic", prompt)
@@ -174,47 +97,6 @@ class JsonformerClaude:
         self.debug("[prefix_matches]", result)
         return result
 
-    async def generate_string(self) -> str:
-        prompt = self.get_prompt() + '"'
-        progress = self.get_progress() + '"'
-        self.debug("[generate_string]", prompt, is_prompt=True)
-
-        def extract_string(s: str):
-            quote_index = s.find('"')
-            if quote_index > -1 and s[quote_index - 1] != "\\":
-                return s[:quote_index]
-            return None
-
-        stream = self.last_anthropic_stream
-        if not await self.prefix_matches(progress) or stream is None:
-            self.debug("[generate_string]", "prompt doesn't match, getting new stream")
-            stream = self.completion(prompt)
-            generated_string = ""
-            async for completion in stream:
-                completion = completion[len(progress) :]
-                generated_string = extract_string(completion)
-                if generated_string:
-                    break
-        else:
-            if self.last_anthropic_response_finished:
-                self.debug(
-                    "[generate_string]", "prompt matches, getting from last response"
-                )
-                generated_string = extract_string(
-                    self.last_anthropic_response[len(progress) :]
-                )
-            else:
-                stream = self.last_anthropic_stream
-                async for response in stream:
-                    # subtract the progress
-                    completion = response[len(progress) :]
-                    generated_string = extract_string(completion)
-                    if generated_string:
-                        break
-
-        self.debug("[generate_string]:", generated_string)
-        return generated_string
-
     async def generate_object(
         self, properties: Dict[str, Any], obj: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -240,36 +122,63 @@ class JsonformerClaude:
 
         return definition
 
+    async def get_stream(self):
+        progress = self.get_progress()
+        prompt = self.get_prompt()
+
+        print (progress)
+        print (prompt)
+
+        stream = self.last_anthropic_response
+
+        if not await self.prefix_matches(progress) or stream is None:
+            stream = self.completion(prompt)
+        else:
+            stream = self.last_anthropic_stream
+
+        return stream
 
     async def generate_value(
         self,
         schema: Dict[str, Any],
         obj: Union[Dict[str, Any], List[Any]],
         key: Union[str, None] = None,
+        retries: int = 0
     ) -> Any:
+        if retries > 5:
+            self.debug("[completion] EXCEEDED RETRIES RETURNING NONE", retries)
+            return None
+
         schema_type = schema.get("type")
-        if schema_type == "number":
-            if key:
-                obj[key] = self.generation_marker
-            else:
-                obj.append(self.generation_marker)
-            return await self.generate_number()
-        elif schema_type == "boolean":
-            if key:
-                obj[key] = self.generation_marker
-            else:
-                obj.append(self.generation_marker)
-            return await self.generate_boolean()
-        elif schema_type == "string":
-            if key:
-                obj[key] = self.generation_marker
-            else:
-                obj.append(self.generation_marker)
-            return await self.generate_string()
+
+        if schema_type in FIELDS:
+            obj[key] = self.generation_marker
+            stream = await self.get_stream()
+
+            async for completion in stream:
+                self.debug("[completion]", completion)
+                progress = self.get_progress()
+                completion = completion[len(progress):]
+                field = FIELDS[schema_type](schema=schema).generate_value(completion)
+
+                if field.value_valid:
+                    return field.value
+                elif field.value_found:
+                    self.debug("[completion]", "retrying")
+                    self.completion(self.get_prompt())
+                    # Could do things like change temperature here
+                    return await self.generate_value(
+                        schema=schema,
+                        obj=obj,
+                        key=key,
+                        retries=retries + 1
+                    )
+
         elif schema_type == "array":
             new_array = []
             obj[key] = new_array
             return await self.generate_array(schema["items"], new_array)
+
         elif schema_type == "object":
             new_obj = {}
             if key:
@@ -277,6 +186,7 @@ class JsonformerClaude:
             else:
                 obj.append(new_obj)
             return await self.generate_object(schema["properties"], new_obj)
+
         elif ref := schema.get("$ref"):
             definition = self.get_definition_by_ref(ref)
             return await self.generate_value(
@@ -284,6 +194,8 @@ class JsonformerClaude:
                 obj=obj,
                 key=key,
             )
+
+
         else:
             raise ValueError(f"Unsupported schema type: {schema_type}")
 
