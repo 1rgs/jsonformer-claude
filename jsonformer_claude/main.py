@@ -126,6 +126,9 @@ class JsonformerClaude:
         progress = self.get_progress()
         prompt = self.get_prompt()
 
+        self.debug("[debug-progress]", progress)
+        self.debug("[debug-progress]", prompt)
+
         stream = self.last_anthropic_response
 
         if not await self.prefix_matches(progress) or stream is None:
@@ -191,7 +194,41 @@ class JsonformerClaude:
                 obj[key] = new_obj
             else:
                 obj.append(new_obj)
+
             return await self.generate_object(schema["properties"], new_obj)
+
+        elif discriminator := schema.get("discriminator"):
+            property_name = discriminator["propertyName"]
+            mapping = discriminator["mapping"]
+
+            property_name_schema = {
+                "type": "string",
+                "enum": [m for m in mapping]
+            }
+
+            new_obj = {}
+            new_obj[property_name] = self.generation_marker
+
+            if key:
+                obj[key] = new_obj
+            else:
+                obj.append(new_obj)
+
+            property_enum_value = await self.generate_value(
+                schema=property_name_schema,
+                obj=new_obj,
+                key=property_name
+            )
+            new_obj[property_name] = property_enum_value
+
+            #new_obj.pop(property_name)
+
+            self.debug("[discriminator]", property_enum_value)
+
+            schema = self.get_definition_by_ref(mapping[property_enum_value])
+            self.debug("[discriminator]", schema)
+            return await self.generate_object(properties=schema["properties"], obj=new_obj)
+
 
         elif ref := schema.get("$ref"):
             definition = self.get_definition_by_ref(ref)
@@ -200,7 +237,6 @@ class JsonformerClaude:
                 obj=obj,
                 key=key,
             )
-
 
         else:
             raise ValueError(f"Unsupported schema type: {schema_type}")
