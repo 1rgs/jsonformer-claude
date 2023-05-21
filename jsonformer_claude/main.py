@@ -219,7 +219,6 @@ class JsonformerClaude:
                         self.last_anthropic_response = completion[1:]
                         break
             else:
-                print (arr)
                 arr.append(self.generation_marker)
                 progress = self.get_progress()
                 arr.pop()

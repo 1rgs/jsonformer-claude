@@ -16,7 +16,7 @@ class IntField(BaseField):
                 return False
 
             return True
-        except Exception as e:
+        except Exception:
             return False
 
     def postprocess_value(self, val: str) -> int | float:
