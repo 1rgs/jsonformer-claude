@@ -129,6 +129,7 @@ class JsonformerClaude:
         stream = self.last_anthropic_response
 
         if not await self.prefix_matches(progress) or stream is None:
+
             stream = self.completion(prompt)
         else:
             stream = self.last_anthropic_stream
@@ -149,19 +150,28 @@ class JsonformerClaude:
         schema_type = schema.get("type")
 
         if schema_type in FIELDS:
-            obj[key] = self.generation_marker
+            field = FIELDS[schema_type](
+                schema=schema,
+                obj=obj,
+                key=key,
+                generation_marker=self.generation_marker
+            )
+            field.insert_generation_marker()
+
             stream = await self.get_stream()
 
             async for completion in stream:
-                self.debug("[completion]", completion)
                 progress = self.get_progress()
                 completion = completion[len(progress):]
-                field = FIELDS[schema_type](schema=schema).generate_value(completion)
+                self.debug("[completion]", completion)
+                field_return = field.generate_value(completion)
+                self.debug("[completion]", field_return)
 
-                if field.value_valid:
-                    return field.value
-                elif field.value_found:
+                if field_return.value_valid:
+                    return field_return.value
+                elif field_return.value_found:
                     self.debug("[completion]", "retrying")
+                    print (field_return)
                     self.completion(self.get_prompt())
                     # Could do things like change temperature here
                     return await self.generate_value(
@@ -209,6 +219,7 @@ class JsonformerClaude:
                         self.last_anthropic_response = completion[1:]
                         break
             else:
+                print (arr)
                 arr.append(self.generation_marker)
                 progress = self.get_progress()
                 arr.pop()

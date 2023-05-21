@@ -2,7 +2,7 @@ from jsonformer_claude.fields.base import BaseField
 
 
 class BoolField(BaseField):
-    end_tokens = [","]
+    end_tokens = [",", "}"]
 
     def validate_value(self, val: str) -> bool:
         return val in ["true", "false"]

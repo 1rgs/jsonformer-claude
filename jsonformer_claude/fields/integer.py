@@ -4,8 +4,10 @@ from jsonformer_claude.fields.base import BaseField
 class IntField(BaseField):
     def validate_value(self, val: str) -> bool:
         try:
-            val = int(val)
-            val = float(val)
+            if val.isdigit():
+                val = int(val)
+            else:
+                val = float(val)
 
             if "max" in self.schema and val > self.schema["max"]:
                 return False
@@ -14,7 +16,7 @@ class IntField(BaseField):
                 return False
 
             return True
-        except Exception:
+        except Exception as e:
             return False
 
     def postprocess_value(self, val: str) -> int | float:
