@@ -171,7 +171,6 @@ class JsonformerClaude:
                     return field_return.value
                 elif field_return.value_found:
                     self.debug("[completion]", "retrying")
-                    print (field_return)
                     self.completion(self.get_prompt())
                     # Could do things like change temperature here
                     return await self.generate_value(
