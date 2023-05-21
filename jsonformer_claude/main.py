@@ -126,9 +126,6 @@ class JsonformerClaude:
         progress = self.get_progress()
         prompt = self.get_prompt()
 
-        print (progress)
-        print (prompt)
-
         stream = self.last_anthropic_response
 
         if not await self.prefix_matches(progress) or stream is None:
