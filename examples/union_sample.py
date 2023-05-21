@@ -32,6 +32,7 @@ async def main():
                         "person_type": {"type": "string", "enum": ["PASSENGER"]},
                         "first_name": {"type": "string"},
                         "last_name": {"type": "string"},
+                        "likliehood_to_throwup_out_of_100": {"type": "number"}
                     }
                 }
             },
@@ -65,7 +66,7 @@ async def main():
                 }
             },
         },
-        prompt="Generate info about an old car with three drivers and a passenger",
+        prompt="Generate info about an old car with three drivers and four passengers.",
         debug=True,
     )
 
