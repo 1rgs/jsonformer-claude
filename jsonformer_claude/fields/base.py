@@ -4,6 +4,7 @@ from typing import Any
 from dataclasses import dataclass
 
 
+
 @dataclass
 class FieldResponse:
     value_found: bool
@@ -14,9 +15,22 @@ class FieldResponse:
 class BaseField():
     schema = None
     end_tokens = [",", "}"]
+    obj = None
+    key = None
+    generation_marker = None
 
-    def __init__(self, schema: dict):
+    def __init__(self, schema: dict, obj: Any, key: str, generation_marker: str):
         self.schema = schema
+        self.obj = obj
+        self.key = key
+        self.generation_marker = generation_marker
+
+    def insert_generation_marker(self):
+        if type(self.obj) is dict:
+            self.obj[self.key] = self.generation_marker
+
+        if type(self.obj) is list:
+            self.obj.append(self.generation_marker)
 
     def get_value(self, stream: str) -> str | None:
         """
@@ -24,10 +38,13 @@ class BaseField():
 
         If a terminating character has been found, it'll return that value for processing.
         """
-        for e in self.end_tokens:
-            if e in stream:
-                return stream.split(e)[0]
+        value = []
 
+        for char in stream:
+            if char not in self.end_tokens:
+                value.append(char)
+            else:
+                return "".join(value)
         return None
 
     def validate_value(self, val: str) -> bool:

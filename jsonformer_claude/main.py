@@ -126,9 +126,13 @@ class JsonformerClaude:
         progress = self.get_progress()
         prompt = self.get_prompt()
 
+        self.debug("[debug-progress]", progress)
+        self.debug("[debug-progress]", prompt)
+
         stream = self.last_anthropic_response
 
         if not await self.prefix_matches(progress) or stream is None:
+
             stream = self.completion(prompt)
         else:
             stream = self.last_anthropic_stream
@@ -143,24 +147,32 @@ class JsonformerClaude:
         retries: int = 0
     ) -> Any:
         if retries > 5:
-            self.debug("[completion] EXCEEDED RETRIES RETURNING NONE", retries)
+            self.debug("[completion] EXCEEDED RETRIES RETURNING NONE", str(retries))
             return None
 
         schema_type = schema.get("type")
 
         if schema_type in FIELDS:
-            obj[key] = self.generation_marker
+            field = FIELDS[schema_type](
+                schema=schema,
+                obj=obj,
+                key=key,
+                generation_marker=self.generation_marker
+            )
+            field.insert_generation_marker()
+
             stream = await self.get_stream()
 
             async for completion in stream:
-                self.debug("[completion]", completion)
                 progress = self.get_progress()
                 completion = completion[len(progress):]
-                field = FIELDS[schema_type](schema=schema).generate_value(completion)
+                self.debug("[completion]", completion)
+                field_return = field.generate_value(completion)
+                self.debug("[completion]", field_return)
 
-                if field.value_valid:
-                    return field.value
-                elif field.value_found:
+                if field_return.value_valid:
+                    return field_return.value
+                elif field_return.value_found:
                     self.debug("[completion]", "retrying")
                     self.completion(self.get_prompt())
                     # Could do things like change temperature here
@@ -182,7 +194,41 @@ class JsonformerClaude:
                 obj[key] = new_obj
             else:
                 obj.append(new_obj)
+
             return await self.generate_object(schema["properties"], new_obj)
+
+        elif discriminator := schema.get("discriminator"):
+            property_name = discriminator["propertyName"]
+            mapping = discriminator["mapping"]
+
+            property_name_schema = {
+                "type": "string",
+                "enum": [m for m in mapping]
+            }
+
+            new_obj = {}
+            new_obj[property_name] = self.generation_marker
+
+            if key:
+                obj[key] = new_obj
+            else:
+                obj.append(new_obj)
+
+            property_enum_value = await self.generate_value(
+                schema=property_name_schema,
+                obj=new_obj,
+                key=property_name
+            )
+            new_obj[property_name] = property_enum_value
+
+            #new_obj.pop(property_name)
+
+            self.debug("[discriminator]", property_enum_value)
+
+            schema = self.get_definition_by_ref(mapping[property_enum_value])
+            self.debug("[discriminator]", schema)
+            return await self.generate_object(properties=schema["properties"], obj=new_obj)
+
 
         elif ref := schema.get("$ref"):
             definition = self.get_definition_by_ref(ref)
@@ -191,7 +237,6 @@ class JsonformerClaude:
                 obj=obj,
                 key=key,
             )
-
 
         else:
             raise ValueError(f"Unsupported schema type: {schema_type}")
